@@ -1,34 +1,46 @@
+import os
+
 from ppadb.client import Client as AdbClient
 import time
 import json
+import threading
 
 
-class RecordClicks:
+class RecordClicks(threading.Thread):
     wide = None
     high = None
     empty = None
     device = None
+    host = None
+    port = None
     data = {
         "eventList": [
         ],
         "author": "ly"
     }
 
-    def __init__(self, host, port):
-        # 宽
-        self.wide = "0003 0035 "
-        # 高
-        self.high = "0003 0036 "
-        self.empty = "00000000"
+    def run(self):
+        print("开始线程：" + self.name)
 
         # 初始化连接
-        client = AdbClient(host=host, port=port)
+        client = AdbClient(host=self.host, port=self.port)
         # "127.0.0.1:62001"
         deviceList = self.getDeviceList(client)
 
         self.device = deviceList[0]
         self.device.shell('getevent', handler=self.get_click_handler)
         time.sleep(9999999999999)
+        print("退出线程：" + self.name)
+
+    def __init__(self, host, port):
+        # 宽
+        super().__init__()
+        self.wide = "0003 0035 "
+        # 高
+        self.high = "0003 0036 "
+        self.empty = "00000000"
+        self.host = host
+        self.port = port
 
     # 获取设备列表
     def getDeviceList(self, client):
@@ -79,8 +91,11 @@ class RecordClicks:
 
     # 保存事件到json文件
     def save(self):
-        with open('../db/data.json', 'w') as f:
+        path = os.getcwd()
+        print(path)
+        with open(path + '/db/data.json', 'w') as f:
             json.dump(self.data, f)
-if __name__ == "__main__":
-    # adb get-serialno
-    rc = RecordClicks("127.0.0.1", 5037)
+
+# if __name__ == "__main__":
+#     # adb get-serialno
+#     rc = RecordClicks("127.0.0.1", 5037)
