@@ -1,10 +1,12 @@
 import os
 
+from PyQt5.QtCore import pyqtSignal
 from ppadb.client import Client as AdbClient
 import time
 import json
 import threading
 
+lineBreak = "\n"
 
 class RecordClicks(threading.Thread):
     wide = None
@@ -13,23 +15,17 @@ class RecordClicks(threading.Thread):
     device = None
     host = None
     port = None
+    windowMain = None
     data = {
         "eventList": [
         ],
         "author": "ly"
     }
+    breakSignal = pyqtSignal(int)
 
     def run(self):
         print("开始线程：" + self.name)
-
-        # 初始化连接
-        client = AdbClient(host=self.host, port=self.port)
-        # "127.0.0.1:62001"
-        deviceList = self.getDeviceList(client)
-
-        self.device = deviceList[0]
         self.device.shell('getevent', handler=self.get_click_handler)
-        time.sleep(9999999999999)
         print("退出线程：" + self.name)
 
     def __init__(self, host, port):
@@ -42,22 +38,31 @@ class RecordClicks(threading.Thread):
         self.host = host
         self.port = port
 
+        # 初始化连接
+        self.client = AdbClient(host=self.host, port=self.port)
+
+        # self.device.shell('getevent', handler=self.get_click_handler)
+
+    # 设置设备号
+    def setDevice(self, index):
+        self.device = self.deviceList[index]
+
+    # 录制脚本
+    def transcribe(self, WindowMain):
+        self.windowMain = WindowMain
+        WindowMain.printLogSignal.emit("录制脚本中...." + lineBreak)
+        self.device.shell('getevent', handler=self.get_click_handler)
+
     # 获取设备列表
-    def getDeviceList(self, client):
+    def getDeviceList(self):
         # 获取设备列表
-        devices = client.devices()
-        print("获取设备列表：")
-        print("===================")
-        for dev in devices:
-            # 获取设备序列号
-            serialNo = dev.get_serial_no()
-            print(serialNo)
-        print("===================")
-        return devices
+        self.deviceList = self.client.devices()
+        return self.deviceList
 
     # 回调事件
     def get_click_handler(self, connection):
         print("监听屏幕点击事件中...")
+        self.windowMain.printLogSignal.emit("监听屏幕点击事件中...." + lineBreak)
         while True:
             data = connection.read(1024)
             str = data.decode('utf-8')
@@ -85,9 +90,9 @@ class RecordClicks(threading.Thread):
                 else:
                     eventList = []
                     eventList.append(event)
-                self.data["eventList"] = eventList
+                #self.data["eventList"] = eventList
                 # 保存事件到json文件
-                self.save()
+                #self.save()
 
     # 保存事件到json文件
     def save(self):

@@ -9,10 +9,7 @@ class startApp():
     # 启动UI界面
     def startUi(self):
         app = QApplication(sys.argv)
-        MainWindow = QMainWindow()
-        ui = windowMain.Ui_MainWindow()
-        ui.setupUi(MainWindow)
-        MainWindow.show()
+        dispatch = windowMain.SignalEmit()
         sys.exit(app.exec_())
 
 
