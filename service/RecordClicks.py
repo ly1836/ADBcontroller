@@ -50,8 +50,8 @@ class RecordClicks(threading.Thread):
     # 录制脚本
     def transcribe(self, WindowMain):
         self.windowMain = WindowMain
-        WindowMain.printLogSignal.emit("录制脚本中...." + lineBreak)
-        self.device.shell('getevent', handler=self.get_click_handler)
+        # self.device.shell('getevent', handler=self.get_click_handler)
+
 
     # 获取设备列表
     def getDeviceList(self):
@@ -67,7 +67,7 @@ class RecordClicks(threading.Thread):
             data = connection.read(1024)
             str = data.decode('utf-8')
             splitlines = str.splitlines()
-            event = {"time": int(time.time())}
+            event = {"time": int(round(time.time() * 1000))}
             for split in splitlines:
 
                 if (self.wide in split) and (self.empty not in split):

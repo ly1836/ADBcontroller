@@ -1,8 +1,9 @@
 import sys
 
+from PyQt5.QtWidgets import QApplication
+
 import qtui.WindowMain as windowMain
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
 
 class startApp():
 

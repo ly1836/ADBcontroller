@@ -1,10 +1,11 @@
-import sys
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QLabel, QCheckBox, QSpinBox, QHBoxLayout, \
+from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QHBoxLayout, \
     QComboBox, QGridLayout, QTextEdit
 
 from service.RecordClicks import RecordClicks
+from service.ScanDeviceThread import ScanDeviceThread
+from service.TranscribeThread import TranscribeThread
 
 lineBreak = "\n"
 
@@ -13,7 +14,6 @@ class SignalEmit(QWidget):
     printSignal = pyqtSignal(list)
     # 声明一个多重载版本的信号，包括了一个带int和str类型参数的信号，以及带str参数的信号
     previewSignal = pyqtSignal([int, str], [str])
-
 
     rc = None
 
@@ -40,6 +40,7 @@ class SignalEmit(QWidget):
         self.scanDeviceButton.clicked.connect(self.scanDevicegSignal)
         self.setDeviceButton.clicked.connect(self.setDevicegSignal)
         self.transcribeButton.clicked.connect(self.transcribeSignal)
+        self.playShellButton.clicked.connect(self.playShellSignal)
 
         self.setGeometry(300, 300, 800, 400)
         self.setWindowTitle('ADB命令重放')
@@ -55,6 +56,8 @@ class SignalEmit(QWidget):
         self.setDeviceButton.setEnabled(False)
         self.transcribeButton = QPushButton("录制脚本")
         self.transcribeButton.setEnabled(False)
+        self.playShellButton = QPushButton("重放脚本")
+        self.playShellButton.setEnabled(False)
 
         self.styleCombo = QComboBox(self)
         self.styleCombo.setEnabled(False)
@@ -73,11 +76,12 @@ class SignalEmit(QWidget):
         # controlsLayout.addWidget(pageLabel, 0, 2)
         # controlsLayout.addWidget(self.printButton, 0, 4)
         # controlsLayout.addWidget(self.previewStatus, 3, 0)
-        controlsLayout.addWidget(self.styleCombo, 4, 3)
-        controlsLayout.addWidget(self.clearLogButton, 1, 1)
+
         controlsLayout.addWidget(self.scanDeviceButton, 2, 1)
-        controlsLayout.addWidget(self.setDeviceButton, 2, 2)
+        controlsLayout.addWidget(self.styleCombo, 2, 2)
+        controlsLayout.addWidget(self.setDeviceButton, 2, 3)
         controlsLayout.addWidget(self.transcribeButton, 3, 1)
+        controlsLayout.addWidget(self.playShellButton, 3, 2)
         self.controlsGroup.setLayout(controlsLayout)
 
     # 初始化日志区
@@ -90,8 +94,10 @@ class SignalEmit(QWidget):
         textFont.setPointSize(10)
         self.textEdit.setFont(textFont)
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.textEdit)
+        layout = QGridLayout()
+
+        layout.addWidget(self.textEdit, 1,1)
+        layout.addWidget(self.clearLogButton, 2,1)
         self.resultGroup.setLayout(layout)
 
     def emitPreviewSignal(self):
@@ -113,23 +119,33 @@ class SignalEmit(QWidget):
 
     # 录制脚本
     def transcribeSignal(self):
-        self.rc.transcribe(self)
+        # self.rc.transcribe(self)
+        self.rc = TranscribeThread(self.rc.device, self)
+        self.rc.start()
+
+    # 重放脚本
+    def playShellSignal(self):
+        self.rc.playShell(self)
 
     # 扫描设备
     def scanDevicegSignal(self):
         if(self.rc == None):
             self.rc = RecordClicks("127.0.0.1", 5037)
+            #self.rc = ScanDeviceThread("127.0.0.1", 5037, self)
+            #self.rc.startScan()
+
         device_list = self.rc.getDeviceList()
+
         if(device_list != None):
             self.textEdit.insertPlainText("扫描到[%s]个设备" % device_list.__len__() + lineBreak)
             for device in device_list:
-                print(device.get_serial_no())
                 self.textEdit.insertPlainText("设备号:[%s]" % device.get_serial_no() + lineBreak)
 
         self.createCombo()
         self.styleCombo.setEnabled(True)
         self.setDeviceButton.setEnabled(True)
         self.transcribeButton.setEnabled(True)
+        self.playShellButton.setEnabled(True)
 
     # 根据扫描到的设备列表生成下来框
     def createCombo(self):
@@ -158,3 +174,4 @@ class SignalEmit(QWidget):
 
     def printLog(self, message):
         self.textEdit.insertPlainText(message + lineBreak)
+        self.textEdit.verticalScrollBar().setValue(self.textEdit.verticalScrollBar().maximum())
