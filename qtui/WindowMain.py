@@ -1,5 +1,6 @@
 import time
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QHBoxLayout, \
@@ -107,6 +108,7 @@ class SignalEmit(QWidget):
 
         self.textEdit = QTextEdit()
         self.textEdit.setReadOnly(True)
+        self.textEdit.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         textFont = QFont("Microsoft YaHei")
         textFont.setPointSize(10)
         self.textEdit.setFont(textFont)
@@ -155,8 +157,7 @@ class SignalEmit(QWidget):
 
     # 停止录制脚本
     def stopTranscribeSignal(self):
-        threadUtil = ThreadUtil(self.transcribe)
-        threadUtil.stopThread()
+        self.transcribe.stop(self)
 
         self.scanDeviceButton.setEnabled(True)
         self.styleCombo.setEnabled(True)
@@ -176,7 +177,7 @@ class SignalEmit(QWidget):
         self.scanDevice = ScanDeviceThread(self.scanDevice, self)
         self.scanDevice.startScan()
 
-    # 根据扫描到的设备列表生成下来框
+    # 根据扫描到的设备列表生成下拉框
     def createCombo(self):
         for idx, val in enumerate(self.scanDevice.deviceBO.getDeviceList()):
             self.styleCombo.addItem(val.get_serial_no(), idx)

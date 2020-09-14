@@ -4,16 +4,19 @@ import time
 import json
 import threading
 
+from config.Config_operate import Properties
 from util.JSONUtil import JSONUtil
+from util.ThreadUtil import ThreadUtil
 
 lineBreak = "\n"
 
 ## 录制脚本线程
 class TranscribeThread(threading.Thread):
+    property = Properties()
     windowMain = None
-    wide = None
-    high = None
-    empty = None
+    wide = property.getWide()
+    high = property.getHigh()
+    empty = property.getEmpty()
     device = None
     data = {
         "eventList": [
@@ -21,24 +24,18 @@ class TranscribeThread(threading.Thread):
         "author": "ly"
     }
 
-    stopFlag = True
-
     def __init__(self, device, windowMain):
         super().__init__()
-        self.wide = "0003 0035 "
-        # 高
-        self.high = "0003 0036 "
-        self.empty = "00000000"
         self.device = device
         self.windowMain = windowMain
 
     def run(self):
-        self.windowMain.printLogSignal.emit("开启监听线程:" + self.name)
-        self.device.shell('getevent', handler=self.get_click_handler)
-        self.windowMain.printLogSignal.emit("结束监听线程:" + self.name)
+        self.windowMain.printLogSignal.emit("开启点击事件监听线程:" + self.name)
+        self.device.shell("getevent", handler=self.get_click_handler)
 
-    def stop(self):
-        self.stopFlag = False
+    def stop(self, windowMain):
+        ThreadUtil(self).stopThread()
+        windowMain.printLogSignal.emit("结束点击事件监听线程:" + self.name)
 
     # 重放脚本
     def playShell(self, windowMain):

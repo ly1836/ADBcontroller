@@ -9,7 +9,7 @@ class ThreadUtil():
         self.thread = thread
 
     def asyncRaise(self, exctype):
-        tid = ctypes.c_long(self.thread)
+        tid = ctypes.c_long(self.thread.ident)
         if not inspect.isclass(exctype):
             exctype = type(exctype)
         res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
