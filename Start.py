@@ -13,7 +13,12 @@ class startApp():
         dispatch = windowMain.SignalEmit()
         sys.exit(app.exec_())
 
+    # 初始化字典
+    def initDict(self):
+        # 扫描设备回调
+        pass
 
 if __name__ =='__main__':
     startApp = startApp()
+    startApp.initDict()
     startApp.startUi()

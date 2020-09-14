@@ -4,6 +4,8 @@ import time
 import json
 import threading
 
+from util.JSONUtil import JSONUtil
+
 lineBreak = "\n"
 
 ## 录制脚本线程
@@ -65,14 +67,12 @@ class TranscribeThread(threading.Thread):
                     wide_ = split.split(self.wide)[1]
                     # 宽转10进制数字
                     wide_16 = int(wide_, 16)
-                    # print(r"点击的x轴：[%s]" % wide_16)
                     self.windowMain.printLogSignal.emit("点击的x轴：[%s]" % wide_16)
                     event["x"] = wide_16
                 if ((self.high in split) and (self.empty not in split)):
                     high_ = split.split(self.high)[1]
                     # 高转10进制数字
                     high_16 = int(high_, 16)
-                    # print(r"点击的y轴：[%s]" % high_16)
                     self.windowMain.printLogSignal.emit("点击的y轴：[%s]" % high_16)
                     event["y"] = high_16
 
@@ -84,26 +84,8 @@ class TranscribeThread(threading.Thread):
                     eventList = []
                     eventList.append(event)
                 self.data["eventList"] = eventList
+
                 # 保存事件到json文件
-                self.save()
+                jsonUtil = JSONUtil()
+                jsonUtil.saveToLocal(self.data)
 
-    # 保存事件到json文件
-    def save(self):
-        # 剔除事件时间间隔小于100ms的记录点
-        lastTime = None
-        eventList = self.data.get("eventList")
-        newEventList = []
-        for d in eventList:
-            if(lastTime != None):
-                timeDiff = d["t"] - lastTime
-                if(timeDiff > 300):
-                    newEventList.append(d)
-                    lastTime = d["t"]
-            else:
-                lastTime = d["t"]
-                newEventList.append(d)
-
-        self.data.__setitem__("eventList", newEventList)
-        path = os.getcwd()
-        with open(path + '/db/data.json', 'w') as f:
-            json.dump(self.data, f)
