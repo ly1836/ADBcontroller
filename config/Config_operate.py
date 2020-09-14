@@ -22,3 +22,19 @@ class Properties():
     def getEmpty(self):
         section = cp.sections()[1]
         return str(cp.get(section, "empty"))
+
+    def getLogFilename(self):
+        section = cp.sections()[2]
+        return str(cp.get(section, "logFilename"))
+
+    def getFilemode(self):
+        section = cp.sections()[2]
+        return str(cp.get(section, "filemode"))
+
+    def getLogFormat(self):
+        section = cp.sections()[2]
+        return str(cp.get(section, "logFormat"))
+
+    def getLogDatefmt(self):
+        section = cp.sections()[2]
+        return str(cp.get(section, "datefmt"))
