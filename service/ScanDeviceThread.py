@@ -5,13 +5,12 @@ from config.Properties import Properties
 from util.LogUtil import LogUtil
 
 lineBreak = "\n"
-logging = LogUtil().logger
+logging = LogUtil().getLogger()
 
 ## 扫描设备线程
 class ScanDeviceThread(threading.Thread):
     deviceBO = None
     windowMain = None
-
     property = Properties()
 
     def __init__(self, deviceBO, windowMain):

@@ -2,18 +2,23 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, Qt, QSize
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QImage
 from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QHBoxLayout, \
-    QComboBox, QGridLayout, QTextEdit, QVBoxLayout, QLabel
+    QComboBox, QGridLayout, QTextEdit, QVBoxLayout, QLabel, QMessageBox
 
 from config.Properties import Properties
 from model.DeviceBO import DeviceBO
 from service.ScanDeviceThread import ScanDeviceThread
+from service.ScreencapThread import ScreencapThread
 from service.TranscribeThread import TranscribeThread
-import logging
+from util.LogUtil import LogUtil
+
+showMessage = QMessageBox.question
 
 lineBreak = "\n"
 logDatePrefix = "%Y-%m-%d %H:%M:%S"
+logging = LogUtil().getLogger()
+monitorImage = Properties().getMonitorImage()
 
 
 class WindowMain(QWidget):
@@ -26,6 +31,8 @@ class WindowMain(QWidget):
     scanDevice = None
     # 录制脚本
     transcribe = None
+    # 录制画面
+    screencap = None
 
     # adb 连接的host
     host = None
@@ -39,7 +46,7 @@ class WindowMain(QWidget):
         self.port = port
 
     def initUI(self):
-        self.creatMonitor("监控：")
+        self.creatMonitor("画面监控：", None)
         self.creatContorls("控制：")
         self.creatResult("日志：")
 
@@ -64,6 +71,7 @@ class WindowMain(QWidget):
 
         self.setGeometry(300, 300, 800, 400)
         self.setWindowTitle('ADB命令重放')
+        #self.setFixedSize(MainWindow.width(), MainWindow.height());
         self.show()
 
     # 控制按钮区
@@ -131,21 +139,37 @@ class WindowMain(QWidget):
         self.resultGroup.setLayout(layout)
 
     # 初始化监控区
-    def creatMonitor(self, title):
+    def creatMonitor(self, title, imagePath):
         self.monitorGroup = QGroupBox(title)
-        imageInitPath = Properties().getMonitorInitImage()
+        if(imagePath == None):
+            imagePath = Properties().getMonitorInitImage()
 
-        pix = QPixmap(imageInitPath)
-        pix = pix.scaled(QSize(960, 540), QtCore.Qt.KeepAspectRatio)
-        lb1 = QLabel(self)
-        lb1.setPixmap(pix)
-        lb1.setStyleSheet("border: 1px solid black")
-        lb1.setScaledContents(True)
+        self.pix = QPixmap(imagePath)
+        self.pix.load(imagePath)
+        pix = self.pix.scaled(QSize(960, 540), QtCore.Qt.KeepAspectRatio)
+        self.monitorLabel = QLabel(self)
+        self.monitorLabel.setPixmap(pix)
+        self.monitorLabel.setStyleSheet("border: 1px solid black")
+        self.monitorLabel.setScaledContents(True)
 
-        layout = QGridLayout()
-        layout.addWidget(lb1)
+        self.monitorLayout = QGridLayout()
+        self.monitorLayout.addWidget(self.monitorLabel)
 
-        self.monitorGroup.setLayout(layout)
+        self.monitorGroup.setLayout(self.monitorLayout)
+
+    # 重绘监控区图片
+    def redraw(self, imagePath):
+        self.monitorLayout.removeWidget(self.monitorLabel)
+
+        self.pix = QPixmap(imagePath)
+        self.pix.load(imagePath)
+        self.pix = self.pix.scaled(QSize(960, 540), QtCore.Qt.KeepAspectRatio)
+        self.monitorLabel = QLabel()
+        self.monitorLabel.setPixmap(self.pix)
+        self.monitorLabel.setStyleSheet("border: 1px solid black")
+        self.monitorLabel.setScaledContents(True)
+
+        self.monitorLayout.addWidget(self.monitorLabel)
 
     def emitPreviewSignal(self):
         if self.previewStatus.isChecked() == True:
@@ -174,7 +198,13 @@ class WindowMain(QWidget):
     # 录制脚本
     def transcribeSignal(self):
         self.transcribe = TranscribeThread(self.scanDevice.deviceBO.getDevice(), self)
+        self.transcribe.setDaemon(True)
         self.transcribe.start()
+
+        # 异步截图并上传
+        self.screencap = ScreencapThread(self.scanDevice.deviceBO.getDevice(), self)
+        self.screencap.setDaemon(True)
+        self.screencap.start()
 
         self.scanDeviceButton.setEnabled(False)
         self.styleCombo.setEnabled(False)
@@ -186,6 +216,7 @@ class WindowMain(QWidget):
     # 停止录制脚本
     def stopTranscribeSignal(self):
         self.transcribe.stop(self)
+        self.screencap.stop(self)
 
         self.scanDeviceButton.setEnabled(True)
         self.styleCombo.setEnabled(True)
@@ -203,6 +234,7 @@ class WindowMain(QWidget):
     def scanDevicegSignal(self):
         self.scanDevice = DeviceBO(self.host, self.port)
         self.scanDevice = ScanDeviceThread(self.scanDevice, self)
+        self.scanDevice.setDaemon(True)
         self.scanDevice.startScan()
 
     # 根据扫描到的设备列表生成下拉框
@@ -226,13 +258,26 @@ class WindowMain(QWidget):
         if event.key() == Qt.Key_F1:
             self.printLog("打印日志....")
 
+    def closeEvent(self, event):
+        reply = showMessage(self, '警告', "系统将退出，是否确认?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            if self.transcribe != None:
+                self.transcribe.stop(self)
+            if self.screencap != None:
+                self.screencap.stop(self)
+            event.accept()
+        else:
+            event.ignore()
+
     # 输出日志
     def printLog(self, message):
         nowTime = time.strftime(logDatePrefix, time.localtime())
         self.textEdit.insertPlainText(nowTime + "：" + message + lineBreak)
         self.textEdit.verticalScrollBar().setValue(self.textEdit.verticalScrollBar().maximum())
 
-    # type -->1:扫描设备回调
+    # type -->
+    # 1:扫描设备回调
+    # 2:截图回调
     def callBack(self, message, type):
         if(type == 1):
             try:
@@ -251,6 +296,12 @@ class WindowMain(QWidget):
                 self.stopTranscribeButton.setEnabled(True)
                 self.playShellButton.setEnabled(True)
             except Exception as ex:
-                logging.error(ex)
-
+                logging.error("扫描设备回调异常:", exc_info=True)
+        # 截图成功回调
+        if (type == 2):
+            try:
+                logging.info("截图成功回调")
+                self.redraw(monitorImage)
+            except Exception as ex:
+                logging.error("扫描设备回调异常:", exc_info=True)
 

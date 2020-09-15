@@ -6,9 +6,11 @@ import threading
 
 from config.Properties import Properties
 from util.JSONUtil import JSONUtil
+from util.LogUtil import LogUtil
 from util.ThreadUtil import ThreadUtil
 
 lineBreak = "\n"
+logging = LogUtil().getLogger()
 
 ## 录制脚本线程
 class TranscribeThread(threading.Thread):
@@ -52,14 +54,14 @@ class TranscribeThread(threading.Thread):
     # 回调事件
     def get_click_handler(self, connection):
         self.windowMain.printLogSignal.emit("监听屏幕点击事件中....")
+
         while True:
             data = connection.read(1024)
             str = data.decode('utf-8')
             splitlines = str.splitlines()
             nowTime = lambda: int(round(time.time() * 1000))
-            event = {"t": nowTime()}
+            event = {"t": nowTime(), "it": 0}
             for split in splitlines:
-
                 if (self.wide in split) and (self.empty not in split):
                     wide_ = split.split(self.wide)[1]
                     # 宽转10进制数字
@@ -76,13 +78,25 @@ class TranscribeThread(threading.Thread):
             if ((event.get("x") is not None) and (event.get("y") is not None)):
                 eventList = self.data.get("eventList")
                 if (eventList.__len__() > 0):
+                    # 获取最后一个点击事件
+                    lastEvent = eventList[eventList.__len__() - 1]
+                    now = lambda: int(round(time.time() * 1000))
+                    # 最后一个点击事件的时间戳
+                    lastTime = int(lastEvent.get("t"))
+                    # 事件时间间隔小于200ms, 不记录
+                    intervalTime = now() - lastTime
+                    event["it"] = intervalTime
+                    if (intervalTime < 200 and lastTime != 0):
+                        logging.debug("事件时间间隔小于200ms x:[%s],y[%s],t[%s]" % (event.get("x"), event.get("y"), event.get("t")))
+                        continue
+
                     eventList.append(event)
                 else:
                     eventList = []
                     eventList.append(event)
+
                 self.data["eventList"] = eventList
 
                 # 保存事件到json文件
                 jsonUtil = JSONUtil()
                 jsonUtil.saveToLocal(self.data)
-

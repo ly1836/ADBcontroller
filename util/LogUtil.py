@@ -3,10 +3,21 @@ from logging import handlers
 
 from config.Properties import Properties
 
+# 单例模式
+def singleton(cls):
+    _instance = {}
+
+    def inner():
+        if cls not in _instance:
+            _instance[cls] = cls()
+        return _instance[cls]
+    return inner
+
 # 日志工具类使用方法：
 # from util.LogUtil import LogUtil
-# logging = LogUtil().logger
+# logging = LogUtil().getLogger()
 # logging.error("xxx:", exc_info=True)
+@singleton
 class LogUtil(object):
 
     logger = None
@@ -45,3 +56,6 @@ class LogUtil(object):
         th.setFormatter(format_str)  # 设置文件里写入的格式
         self.logger.addHandler(sh)  # 把对象加到logger里
         self.logger.addHandler(th)
+
+    def getLogger(self):
+        return self.logger
