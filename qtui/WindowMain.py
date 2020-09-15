@@ -1,24 +1,22 @@
 import time
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import pyqtSignal, Qt, QSize
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QHBoxLayout, \
-    QComboBox, QGridLayout, QTextEdit
+    QComboBox, QGridLayout, QTextEdit, QVBoxLayout, QLabel
 
+from config.Properties import Properties
 from model.DeviceBO import DeviceBO
 from service.ScanDeviceThread import ScanDeviceThread
 from service.TranscribeThread import TranscribeThread
 import logging
 
-from util.ThreadUtil import ThreadUtil
-
 lineBreak = "\n"
 logDatePrefix = "%Y-%m-%d %H:%M:%S"
-logging.basicConfig(filename="log.log", filemode="w", format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
-                            datefmt="%d-%M-%Y %H:%M:%S", level=logging.DEBUG)
 
-class SignalEmit(QWidget):
+
+class WindowMain(QWidget):
     printLogSignal = pyqtSignal(str)
     callBackSignal = pyqtSignal(str, int)
     # 声明一个多重载版本的信号，包括了一个带int和str类型参数的信号，以及带str参数的信号
@@ -29,18 +27,27 @@ class SignalEmit(QWidget):
     # 录制脚本
     transcribe = None
 
-    def __init__(self):
+    # adb 连接的host
+    host = None
+    # adb 连接的port
+    port = None
+
+    def __init__(self, host, port):
         super().__init__()
         self.initUI()
+        self.host = host
+        self.port = port
 
     def initUI(self):
-
+        self.creatMonitor("监控：")
         self.creatContorls("控制：")
         self.creatResult("日志：")
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.controlsGroup)
-        layout.addWidget(self.resultGroup)
+        layout = QGridLayout()
+        # 6个参数表示控件名，行，列，占用行数，占用列数，对齐方式
+        layout.addWidget(self.monitorGroup,1,1,2,1)
+        layout.addWidget(self.controlsGroup,1,2)
+        layout.addWidget(self.resultGroup,2,2)
         self.setLayout(layout)
 
         self.printLogSignal.connect(self.printLog)
@@ -59,6 +66,7 @@ class SignalEmit(QWidget):
         self.setWindowTitle('ADB命令重放')
         self.show()
 
+    # 控制按钮区
     def creatContorls(self, title):
         self.controlsGroup = QGroupBox(title)
 
@@ -78,6 +86,8 @@ class SignalEmit(QWidget):
         self.styleCombo = QComboBox(self)
         self.styleCombo.setEnabled(False)
         self.styleCombo.currentTextChanged.connect(self.comboBoxChanged)
+
+        self.separateLabel = QLabel("")
 
         # numberLabel = QLabel("打印份数：")
         # pageLabel = QLabel("纸张类型：")
@@ -99,7 +109,8 @@ class SignalEmit(QWidget):
         controlsLayout.addWidget(self.setDeviceButton, 2, 3)
         controlsLayout.addWidget(self.transcribeButton, 3, 1)
         controlsLayout.addWidget(self.stopTranscribeButton, 3, 2)
-        controlsLayout.addWidget(self.playShellButton, 3, 3)
+        controlsLayout.addWidget(self.separateLabel, 4, 1, 1, 3)
+        controlsLayout.addWidget(self.playShellButton, 5, 1)
         self.controlsGroup.setLayout(controlsLayout)
 
     # 初始化日志区
@@ -118,6 +129,23 @@ class SignalEmit(QWidget):
         layout.addWidget(self.textEdit, 1,1)
         layout.addWidget(self.clearLogButton, 2,1)
         self.resultGroup.setLayout(layout)
+
+    # 初始化监控区
+    def creatMonitor(self, title):
+        self.monitorGroup = QGroupBox(title)
+        imageInitPath = Properties().getMonitorInitImage()
+
+        pix = QPixmap(imageInitPath)
+        pix = pix.scaled(QSize(960, 540), QtCore.Qt.KeepAspectRatio)
+        lb1 = QLabel(self)
+        lb1.setPixmap(pix)
+        lb1.setStyleSheet("border: 1px solid black")
+        lb1.setScaledContents(True)
+
+        layout = QGridLayout()
+        layout.addWidget(lb1)
+
+        self.monitorGroup.setLayout(layout)
 
     def emitPreviewSignal(self):
         if self.previewStatus.isChecked() == True:
@@ -173,7 +201,7 @@ class SignalEmit(QWidget):
 
     # 扫描设备
     def scanDevicegSignal(self):
-        self.scanDevice = DeviceBO("127.0.0.1", 5037)
+        self.scanDevice = DeviceBO(self.host, self.port)
         self.scanDevice = ScanDeviceThread(self.scanDevice, self)
         self.scanDevice.startScan()
 

@@ -1,18 +1,18 @@
 import threading
-import logging
 from ppadb.client import Client as AdbClient
-from service import logFilename, filemode, logFormat, logDatefmt
+
+from config.Properties import Properties
+from util.LogUtil import LogUtil
 
 lineBreak = "\n"
-logging.basicConfig(filename=logFilename, filemode=filemode, format=logFormat,
-                    datefmt=logDatefmt, level=logging.DEBUG)
+logging = LogUtil().logger
 
 ## 扫描设备线程
 class ScanDeviceThread(threading.Thread):
     deviceBO = None
     windowMain = None
 
-    # property = Properties()
+    property = Properties()
 
     def __init__(self, deviceBO, windowMain):
         super().__init__()
@@ -30,8 +30,9 @@ class ScanDeviceThread(threading.Thread):
             self.deviceBO.setDeviceList(deviceList)
             self.windowMain.callBackSignal.emit("扫描设备线程结束!", type)
         except Exception as ex:
-            logging.error("扫描设备线程异常:", ex)
-            self.windowMain.printLogSignal.emit("未扫描到已连接设备!")
+            # logging.error("扫描设备线程异常:", ex)
+            logging.error("扫描设备线程异常:", exc_info=True)
+            self.windowMain.printLogSignal.emit("未扫描到已连接设备!\n%s" % str(ex))
 
     # 启动扫描线程
     def startScan(self):

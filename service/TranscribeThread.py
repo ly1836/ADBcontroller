@@ -4,7 +4,7 @@ import time
 import json
 import threading
 
-from config.Config_operate import Properties
+from config.Properties import Properties
 from util.JSONUtil import JSONUtil
 from util.ThreadUtil import ThreadUtil
 
