@@ -15,10 +15,10 @@ logging = LogUtil().getLogger()
 ## 录制脚本线程
 class TranscribeThread(threading.Thread):
     property = Properties()
-    windowMain = None
     wide = property.getWide()
     high = property.getHigh()
     empty = property.getEmpty()
+    windowMain = None
     device = None
     data = {
         "eventList": [
@@ -26,18 +26,22 @@ class TranscribeThread(threading.Thread):
         "author": "ly"
     }
 
+    isRun = False
+
     def __init__(self, device, windowMain):
         super().__init__()
         self.device = device
         self.windowMain = windowMain
 
     def run(self):
+        self.isRun = True
         self.windowMain.printLogSignal.emit("开启点击事件监听线程:" + self.name)
         self.device.shell("getevent", handler=self.get_click_handler)
 
     def stop(self, windowMain):
         ThreadUtil(self).stopThread()
         windowMain.printLogSignal.emit("结束点击事件监听线程:" + self.name)
+        self.isRun = False
 
     # 重放脚本
     def playShell(self, windowMain):
@@ -99,4 +103,4 @@ class TranscribeThread(threading.Thread):
 
                 # 保存事件到json文件
                 jsonUtil = JSONUtil()
-                jsonUtil.saveToLocal(self.data)
+                jsonUtil.saveToLocal(self.data, "data.json")

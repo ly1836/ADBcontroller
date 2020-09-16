@@ -12,6 +12,11 @@ class DeviceBO():
     # 当前连接设备
     device = None
 
+    # 屏幕分辨率宽
+    screenWidth =None
+    # 屏幕分辨率高
+    screenHigh = None
+
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -45,3 +50,15 @@ class DeviceBO():
 
     def getDevice(self):
         return self.device
+
+    def setScreenWidth(self, screenWidth):
+        self.screenWidth = screenWidth
+
+    def getScreenWidth(self):
+        return self.screenWidth
+
+    def setScreenHigh(self, screenHigh):
+        self.screenHigh = screenHigh
+
+    def getScreenHigh(self):
+        return self.screenHigh

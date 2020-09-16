@@ -1,26 +1,28 @@
-import os
 import json
 
+from config.Properties import Properties
 
+dbPath = Properties().getDBPath()
+
+
+# JSON处理工具类
 class JSONUtil():
 
     # 保存事件到json文件
-    def saveToLocal(self, data):
-        # 剔除事件时间间隔小于100ms的记录点
-        lastTime = None
-        eventList = data.get("eventList")
-        newEventList = []
-        for d in eventList:
-            if (lastTime != None):
-                timeDiff = d["t"] - lastTime
-                if (timeDiff > 300):
-                    newEventList.append(d)
-                    lastTime = d["t"]
-            else:
-                lastTime = d["t"]
-                newEventList.append(d)
+    def saveToLocal(self, data, fileName):
+        # eventList = data.get("eventList")
+        # newEventList = []
+        # for d in eventList:
+        #     newEventList.append(d)
+        #
+        # data.__setitem__("eventList", newEventList)
 
-        data.__setitem__("eventList", newEventList)
-        path = os.getcwd()
-        with open(path + '/db/data.json', 'w') as f:
+        with open(dbPath + fileName, 'w') as f:
             json.dump(data, f)
+
+    # 读取json文件
+    def load(self, fileName):
+        with open(dbPath + fileName, 'r') as f:
+            data = json.load(f)
+
+        return data

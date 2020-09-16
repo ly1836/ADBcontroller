@@ -1,8 +1,6 @@
 import configparser
 import os
 
-
-
 class Properties():
     cp = None
 
@@ -16,10 +14,16 @@ class Properties():
     def getTypeByScanDevice(self):
         section = self.cp.sections()[0]
         return int(self.cp.get(section, "scan_device"))
+
     # 截图成功回调类型
     def getTypeByScreencap(self):
         section = self.cp.sections()[0]
         return int(self.cp.get(section, "screencap"))
+
+    # 重放命令结束回调类型
+    def getTypeByPlayOver(self):
+        section = self.cp.sections()[0]
+        return int(self.cp.get(section, "play_shell_over"))
 
     # adb 点击事件X轴特征
     def getWide(self):
@@ -68,3 +72,8 @@ class Properties():
     def getMonitorImage(self):
         section = self.cp.sections()[3]
         return str(self.cp.get(section, "monitor_image"))
+
+    # 获取数据存储路径
+    def getDBPath(self):
+        section = self.cp.sections()[4]
+        return str(self.cp.get(section, "path"))
