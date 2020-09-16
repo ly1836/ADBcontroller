@@ -37,4 +37,3 @@ if __name__ =='__main__':
     print("python start.py 127.0.0.1 5037")
     startApp = start()
     startApp.startUi(initHost, initPort)
-    print("123")
