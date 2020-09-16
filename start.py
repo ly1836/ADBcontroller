@@ -9,7 +9,7 @@ initHost = "127.0.0.1"
 initPort = 5037
 logging = LogUtil().getLogger()
 
-class startApp():
+class start():
 
 
     # 启动UI界面
@@ -35,6 +35,6 @@ if __name__ =='__main__':
     print("-----------------------------------------")
     print("按如下模板设置启动参数:")
     print("python start.py 127.0.0.1 5037")
-    startApp = startApp()
+    startApp = start()
     startApp.startUi(initHost, initPort)
     print("123")
