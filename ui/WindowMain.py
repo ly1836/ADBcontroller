@@ -1,11 +1,10 @@
+import asyncio
 import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, Qt, QSize
-from PyQt5.QtGui import QFont, QPixmap, QImage
-from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QHBoxLayout, \
-    QComboBox, QGridLayout, QTextEdit, QVBoxLayout, QLabel, QMessageBox
-import asyncio
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import QWidget, QGroupBox, QPushButton, QComboBox, QGridLayout, QTextEdit, QLabel, QMessageBox
 
 from config.Properties import Properties
 from model.DeviceBO import DeviceBO
@@ -23,6 +22,7 @@ logging = LogUtil().getLogger()
 monitorImage = Properties().getMonitorImage()
 
 
+# 程序主窗口
 class WindowMain(QWidget):
     printLogSignal = pyqtSignal(str)
     callBackSignal = pyqtSignal(str, int)
@@ -95,6 +95,8 @@ class WindowMain(QWidget):
         self.screencapButton = QPushButton("连接屏幕")
         self.screencapButton.setEnabled(False)
 
+        self.chooseConfigButton = QPushButton("选择配置")
+        # self.chooseConfigButton.setEnabled(False)
         self.playShellButton = QPushButton("重放命令")
         self.playShellButton.setEnabled(False)
         self.stopPlayShellButton = QPushButton("停止重放")
@@ -128,8 +130,9 @@ class WindowMain(QWidget):
         controlsLayout.addWidget(self.stopTranscribeButton, 3, 2)
         controlsLayout.addWidget(self.screencapButton, 3, 3)
         controlsLayout.addWidget(self.separateLabel, 4, 1, 1, 3)
-        controlsLayout.addWidget(self.playShellButton, 5, 1)
-        controlsLayout.addWidget(self.stopPlayShellButton, 5, 2)
+        controlsLayout.addWidget(self.chooseConfigButton, 5, 1)
+        controlsLayout.addWidget(self.playShellButton, 5, 2)
+        controlsLayout.addWidget(self.stopPlayShellButton, 5, 3)
         self.controlsGroup.setLayout(controlsLayout)
 
     # 初始化日志区
@@ -185,6 +188,8 @@ class WindowMain(QWidget):
         self.scanDevice.setDaemon(True)
         self.scanDevice.start()
 
+        self.scanDeviceButton.setEnabled(False)
+
     # 清空日志区
     def cleanLogSignal(self):
         self.textEdit.clear()
@@ -234,6 +239,11 @@ class WindowMain(QWidget):
         self.transcribeButton.setEnabled(True)
         self.stopTranscribeButton.setEnabled(False)
         self.playShellButton.setEnabled(True)
+
+    # 弹出新窗口选择配置
+    def chooseConfigSignal(self):
+        pass
+
 
     # 连接屏幕
     def screencapSignal(self):
@@ -328,6 +338,7 @@ class WindowMain(QWidget):
                         self.printLog("设备号:[%s]" % device.get_serial_no())
 
                 self.createCombo()
+                self.scanDeviceButton.setEnabled(True)
                 self.styleCombo.setEnabled(True)
                 self.setDeviceButton.setEnabled(True)
                 self.transcribeButton.setEnabled(True)

@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
 import ui.WindowMain as windowMain
+from ui.ChooseConfigWindow import ChooseConfigWindow
 from util.LogUtil import LogUtil
 
 initHost = "127.0.0.1"
@@ -21,10 +22,16 @@ class start():
 
         print("当前设置的host=%s,port=%s" % (initHost, initPort))
         print("-----------------------------------------")
-        dispatch = windowMain.WindowMain(initHost, initPort)
-        dispatch.setWindowIcon(QIcon("./resource/init/logo.png"))
-        dispatch.show()
+        mainWindow = windowMain.WindowMain(initHost, initPort)
+        chooseConfig = ChooseConfigWindow(mainWindow)
+        chooseConfig.windowShow()
 
+        mainWindow.chooseConfigButton.clicked.connect(chooseConfig.windowShow)
+
+        mainWindow.setWindowIcon(QIcon("./resource/init/logo.png"))
+        chooseConfig.setWindowIcon(QIcon("./resource/init/logo.png"))
+
+        # mainWindow.show()
         sys.exit(app.exec_())
 
 

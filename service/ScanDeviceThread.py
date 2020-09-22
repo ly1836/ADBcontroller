@@ -35,6 +35,7 @@ class ScanDeviceThread(threading.Thread):
             self.isRun = False
             logging.error("扫描设备线程异常:", exc_info=True)
             self.windowMain.printLogSignal.emit("未扫描到已连接设备!\n%s" % str(ex))
+            self.windowMain.scanDeviceButton.setEnabled(True)
 
 
     # 停止扫描线程
