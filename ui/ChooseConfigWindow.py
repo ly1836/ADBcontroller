@@ -14,6 +14,7 @@ lineBreak = "\n"
 logDatePrefix = "%Y-%m-%d %H:%M:%S"
 logging = LogUtil().getLogger()
 treeFolderImage = Properties().getTreeFolderImage()
+treeFileImage = Properties().getTreeFileImage()
 dbPath = Properties().getDBPath()
 
 
@@ -41,15 +42,11 @@ class ChooseConfigWindow(QMainWindow):
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.f_item = self.tree.headerItem()
 
-        # 添加一个初始文件夹
-        # child = QTreeWidgetItem(self.tree)
-        # child.setText(0, '目录')
-        # child.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
-        # child.setIcon(0, QIcon(treeFolderImage))
-        self.initDataItem()
-
         # 以下是窗口的设置
         self.setCentralWidget(self.tree)
+
+        # 递归建树
+        self.initDataItem(dbPath, self.tree)
 
         # addAction = QAction("添加新子节点", self)
         # addAction.triggered.connect(self.addItem)
@@ -67,23 +64,32 @@ class ChooseConfigWindow(QMainWindow):
         toolbar.addAction(editAction)
         self.show()
 
+
     # 初始化数据节点
-    def initDataItem(self):
-        files = os.listdir(dbPath)
-        for file in files:
-            if os.path.isdir(dbPath + file):
+    def initDataItem(self, upperPath, item = None):
+        files = os.listdir(upperPath)
+        fileCount = files.__len__()
+        for index in range(fileCount):
+            file = files[index]
+            currentpath = upperPath + "/" + file
+            if os.path.isdir(currentpath):
                 print("文件夹：" + file)
-                self.addFolderByName(file)
+
+                child = self.addFolderByName(file, item)
+                self.initDataItem(currentpath, child)
             else:
                 print("文件：" + file)
+                self.addItem(item, file)
 
     # 添加树控件子节点
-    def addItem(self, name):
-        currNode = self.tree.currentItem()
-        if currNode is not None:
-            addChild = QTreeWidgetItem()
+    def addItem(self, currentNode, name):
+        #currentNode = self.tree.currentItem()
+        name = name.replace(".json", "")
+        if currentNode is not None:
+            addChild = QTreeWidgetItem(currentNode)
             addChild.setText(0, name)
-            currNode.addChild(addChild)
+            addChild.setIcon(0, QIcon(treeFileImage))
+            # currNode.addChild(addChild)
         else:
             self.addFolder()
 
@@ -92,7 +98,12 @@ class ChooseConfigWindow(QMainWindow):
         value, ok = QInputDialog.getText(self, "名称", "请输入名称:", QLineEdit.Normal, "")
         if ok:
             value = value.replace(" ", "")
-            child = QTreeWidgetItem(self.tree)
+            item = self.tree.currentItem()
+
+            node = self.getFullPathByNode(item)
+            print(node)
+
+            child = QTreeWidgetItem(item)
             child.setText(0, value)
             child.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
             child.setIcon(0, QIcon(treeFolderImage))
@@ -103,11 +114,12 @@ class ChooseConfigWindow(QMainWindow):
                 os.makedirs(filePath)
 
     # 添加文件夹
-    def addFolderByName(self, folderName):
-        child = QTreeWidgetItem(self.tree)
+    def addFolderByName(self, folderName, currentNode):
+        child = QTreeWidgetItem(currentNode)
         child.setText(0, folderName)
         child.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsEditable)
         child.setIcon(0, QIcon(treeFolderImage))
+        return child
 
     # 删除控件树子节点/根节点
     def deleteItem(self):
@@ -121,33 +133,42 @@ class ChooseConfigWindow(QMainWindow):
                                         QMessageBox.Yes | QMessageBox.No,
                                         QMessageBox.No)
                     if reply == QMessageBox.Yes:
-                        parentNode.removeChild(currNode)
-
-                        self.removeFile(currNode.text(0))
+                        flag = self.removeFile(currNode.text(0))
+                        if flag:
+                            parentNode.removeChild(currNode)
                 else:
                     reply = showMessage(self, '警告', "是否删除文件夹及下面所有文件-%s?" % (currNode.text(0)),
                                         QMessageBox.Yes | QMessageBox.No,
                                         QMessageBox.No)
                     if reply == QMessageBox.Yes:
-                        rootIndex = self.tree.indexOfTopLevelItem(currNode)
-                        self.tree.takeTopLevelItem(rootIndex)
+                        flag = self.removeFile(currNode.text(0))
+                        if flag:
+                            rootIndex = self.tree.indexOfTopLevelItem(currNode)
+                            self.tree.takeTopLevelItem(rootIndex)
 
-                        self.removeFile(currNode.text(0))
+                            self.removeFile(currNode.text(0))
 
             else:
                 QMessageBox.information(self, '消息', '未选择节点')
-        except Exception:
+        except Exception as e:
             logging.error("删除节点异常:", exc_info=True)
+            QMessageBox.information(self, '消息', e.args[1])
 
     # 删除文件
     def removeFile(self, file):
         try:
             filePath = dbPath + file
-            folder = os.path.exists(filePath)
-            if folder:
+            if os.path.isdir(filePath):
+                os.removedirs(filePath)
+                return True
+            elif os.path.isfile(filePath):
                 os.remove(filePath)
-        except Exception:
+                return True
+        except Exception as e:
             logging.error("删除文件异常:", exc_info=True)
+            QMessageBox.information(self, '消息', e.args[1])
+
+        return False
 
     # 修改节点
     def editItem(self):
@@ -156,11 +177,15 @@ class ChooseConfigWindow(QMainWindow):
             if currNode is not None:
                 value, ok = QInputDialog.getText(self, "名称", "请输入新名称:", QLineEdit.Normal, "")
                 if ok:
+                    oldFileName = dbPath + currNode.text(0)
+                    newFilePath = dbPath + value
+                    os.rename(oldFileName, newFilePath)
                     currNode.setText(0, value)
             else:
                 QMessageBox.information(self, '消息', '未选择节点')
-        except Exception:
+        except Exception as e:
             logging.error("修改节点异常:", exc_info=True)
+            QMessageBox.information(self, '消息', e.args[1])
 
     # 树节点点击事件
     def onClicked(self):
@@ -178,6 +203,16 @@ class ChooseConfigWindow(QMainWindow):
         if not self.isVisible():
             self.show()
 
-    # def onClicked(self):
-    #     item = self.tree.currentItem()
-    #     print('Key=%s,value=%s' % (item.text(0), item.text(1)))
+    # 获取指定节点全路径
+    def getFullPathByNode(self, item):
+        try:
+            path = item.text(0)
+            parent = item.parent()
+            if parent != None:
+                return self.getFullPathByNode(parent) + "/" + path
+            else:
+                if parent == None:
+                    return ""
+                return item.text(0)
+        except Exception as ex:
+            logging.error("获取控件全路径异常:", exc_info=True)

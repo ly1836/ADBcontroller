@@ -78,6 +78,11 @@ class Properties():
         section = self.cp.sections()[3]
         return str(self.cp.get(section, "tree_folder_init_image"))
 
+    # 树控件文件图片路径
+    def getTreeFileImage(self):
+        section = self.cp.sections()[3]
+        return str(self.cp.get(section, "tree_file_init_image"))
+
     # 获取数据存储路径
     def getDBPath(self):
         section = self.cp.sections()[4]
