@@ -24,14 +24,14 @@ class start():
         print("-----------------------------------------")
         mainWindow = windowMain.WindowMain(initHost, initPort)
         chooseConfig = ChooseConfigWindow(mainWindow)
-        chooseConfig.windowShow()
+        # chooseConfig.windowShow()
 
         mainWindow.chooseConfigButton.clicked.connect(chooseConfig.windowShow)
 
         mainWindow.setWindowIcon(QIcon("./resource/init/logo.png"))
         chooseConfig.setWindowIcon(QIcon("./resource/init/logo.png"))
 
-        # mainWindow.show()
+        mainWindow.show()
         sys.exit(app.exec_())
 
 
